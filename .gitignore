@@ -32,3 +32,6 @@ dist-ssr
 
 # Prisma
 prisma/migrations/
+
+
+.next
