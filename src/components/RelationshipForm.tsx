@@ -32,8 +32,10 @@ export function RelationshipForm({ onSave, onCancel }: RelationshipFormProps) {
     strength: 3,
     notes: "",
   })
+  const [hideGuestsWithRelationships, setHideGuestsWithRelationships] = useState(false)
 
   const { data: guests } = trpc.guests.getAll.useQuery({ includeDeclined: false })
+  const { data: relationships } = trpc.relationships.getAll.useQuery()
 
   const createRelationshipMutation = trpc.relationships.create.useMutation({
     onSuccess: onSave,
@@ -55,7 +57,24 @@ export function RelationshipForm({ onSave, onCancel }: RelationshipFormProps) {
     await createRelationshipMutation.mutateAsync(data)
   }
 
-  const availableGuests = guests?.filter((guest) => guest.rsvpStatus !== "DECLINED") || []
+  const getGuestsWithRelationships = () => {
+    if (!relationships) return new Set<string>()
+
+    const guestIds = new Set<string>()
+    relationships.forEach((relationship) => {
+      guestIds.add(relationship.guestFromId)
+      guestIds.add(relationship.guestToId)
+    })
+    return guestIds
+  }
+
+  const guestsWithRelationships = getGuestsWithRelationships()
+
+  const availableGuests = guests?.filter((guest) => {
+    if (guest.rsvpStatus === "DECLINED") return false
+    if (hideGuestsWithRelationships && guestsWithRelationships.has(guest.id)) return false
+    return true
+  }) || []
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
@@ -68,6 +87,18 @@ export function RelationshipForm({ onSave, onCancel }: RelationshipFormProps) {
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          <div className="bg-gray-50 p-3 rounded-md">
+            <label className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                checked={hideGuestsWithRelationships}
+                onChange={(e) => setHideGuestsWithRelationships(e.target.checked)}
+                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+              />
+              <span className="text-sm text-gray-700">Hide guests who already have relationships</span>
+            </label>
+          </div>
+
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">First Guest *</label>
             <select
