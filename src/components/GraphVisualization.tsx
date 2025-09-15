@@ -9,10 +9,12 @@ interface GraphNode {
   id: string;
   name: string;
   rsvpStatus: string;
-  tableId?: string;
+  tableId?: string | null;
   tableName?: string;
   group: number;
   val: number;
+  x?: number;
+  y?: number;
 }
 
 interface GraphLink {
@@ -28,6 +30,7 @@ export function GraphVisualization() {
   const [selectedNode, setSelectedNode] = useState<GraphNode | null>(null);
   const [filterType, setFilterType] = useState<string>("all");
   const [showTableColors, setShowTableColors] = useState(true);
+  const [showTableGroups, setShowTableGroups] = useState(true);
 
   const { data: guests } = trpc.guests.getAll.useQuery({
     includeDeclined: false,
@@ -71,6 +74,42 @@ export function GraphVisualization() {
     return colors[tableIndex % colors.length] || "#94a3b8";
   };
 
+  const calculateTableBoundaries = (nodes: GraphNode[]) => {
+    const tableGroups: { [tableId: string]: { nodes: GraphNode[], bounds: { minX: number, maxX: number, minY: number, maxY: number }, table: any } } = {};
+
+    // Group nodes by table
+    nodes.forEach(node => {
+      if (node.tableId && node.x !== undefined && node.y !== undefined) {
+        if (!tableGroups[node.tableId]) {
+          const table = tables?.find(t => t.id === node.tableId);
+          tableGroups[node.tableId] = {
+            nodes: [],
+            bounds: { minX: node.x, maxX: node.x, minY: node.y, maxY: node.y },
+            table
+          };
+        }
+
+        tableGroups[node.tableId].nodes.push(node);
+        const bounds = tableGroups[node.tableId].bounds;
+        bounds.minX = Math.min(bounds.minX, node.x);
+        bounds.maxX = Math.max(bounds.maxX, node.x);
+        bounds.minY = Math.min(bounds.minY, node.y);
+        bounds.maxY = Math.max(bounds.maxY, node.y);
+      }
+    });
+
+    // Add padding to boundaries
+    Object.values(tableGroups).forEach(group => {
+      const padding = 50;
+      group.bounds.minX -= padding;
+      group.bounds.maxX += padding;
+      group.bounds.minY -= padding;
+      group.bounds.maxY += padding;
+    });
+
+    return tableGroups;
+  };
+
   const graphData = {
     nodes:
       guests
@@ -105,7 +144,7 @@ export function GraphVisualization() {
           name: `${guest.firstName} ${guest.lastName}`,
           rsvpStatus: guest.rsvpStatus,
           tableId: guest.tableId,
-          tableName: guest.table?.name,
+          tableName: tables?.find(t => t.id === guest.tableId)?.name,
           group: guest.tableId
             ? tables?.findIndex((t) => t.id === guest.tableId) || 0
             : 0,
@@ -186,6 +225,15 @@ export function GraphVisualization() {
             />
             <span className="text-sm text-gray-600">Color by table</span>
           </label>
+          <label className="flex items-center space-x-2">
+            <input
+              type="checkbox"
+              checked={showTableGroups}
+              onChange={(e) => setShowTableGroups(e.target.checked)}
+              className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+            />
+            <span className="text-sm text-gray-600">Show table groups</span>
+          </label>
         </div>
       </div>
 
@@ -240,6 +288,64 @@ export function GraphVisualization() {
             linkDirectionalParticles={2}
             linkDirectionalParticleWidth={2}
             onNodeClick={handleNodeClick}
+            onRenderFramePost={(ctx: CanvasRenderingContext2D, globalScale: number) => {
+              // Draw table groups if enabled
+              if (showTableGroups && graphData.nodes.length > 0) {
+                const tableGroups = calculateTableBoundaries(graphData.nodes);
+
+                Object.entries(tableGroups).forEach(([tableId, group]) => {
+                  if (group.nodes.length > 1) { // Only draw groups with multiple nodes
+                    const { bounds, table } = group;
+
+                    // Draw table boundary box
+                    ctx.strokeStyle = getTableColor(tableId);
+                    ctx.fillStyle = getTableColor(tableId) + '10'; // Very transparent fill
+                    ctx.lineWidth = 2 / globalScale;
+                    ctx.setLineDash([10 / globalScale, 5 / globalScale]);
+
+                    const width = bounds.maxX - bounds.minX;
+                    const height = bounds.maxY - bounds.minY;
+
+                    // Fill the background
+                    ctx.fillRect(bounds.minX, bounds.minY, width, height);
+
+                    // Draw the border
+                    ctx.strokeRect(bounds.minX, bounds.minY, width, height);
+
+                    // Reset line dash
+                    ctx.setLineDash([]);
+
+                    // Draw table label
+                    const fontSize = 14 / globalScale;
+                    ctx.font = `bold ${fontSize}px Sans-Serif`;
+                    ctx.fillStyle = getTableColor(tableId);
+                    ctx.textAlign = "left";
+                    ctx.textBaseline = "top";
+
+                    const labelText = table?.name || `Table ${tableId.slice(0, 8)}`;
+                    const labelPadding = 8 / globalScale;
+
+                    // Draw label background
+                    const labelWidth = ctx.measureText(labelText).width;
+                    ctx.fillStyle = "rgba(255, 255, 255, 0.9)";
+                    ctx.fillRect(
+                      bounds.minX + labelPadding,
+                      bounds.minY + labelPadding,
+                      labelWidth + labelPadding * 2,
+                      fontSize + labelPadding * 2
+                    );
+
+                    // Draw label text
+                    ctx.fillStyle = getTableColor(tableId);
+                    ctx.fillText(
+                      labelText,
+                      bounds.minX + labelPadding * 2,
+                      bounds.minY + labelPadding * 2
+                    );
+                  }
+                });
+              }
+            }}
             nodeCanvasObject={(
               node: any,
               ctx: CanvasRenderingContext2D,
@@ -297,7 +403,7 @@ export function GraphVisualization() {
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
             <h3 className="font-medium text-gray-900 mb-3">Table Colors</h3>
             <div className="space-y-2">
-              {tables.slice(0, 8).map((table, index) => (
+              {tables.slice(0, 8).map((table) => (
                 <div key={table.id} className="flex items-center space-x-2">
                   <div
                     className="w-4 h-4 rounded-full"
