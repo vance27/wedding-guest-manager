@@ -1,8 +1,7 @@
 "use client"
 
-import { useState } from "react"
 import { trpc } from "../utils/trpc"
-import { Edit, Trash2, Users, UserMinus, AlertTriangle, ChevronDown, ChevronRight } from "lucide-react"
+import { Edit, Trash2, Users, UserMinus, AlertTriangle } from "lucide-react"
 
 interface Guest {
   id: string
@@ -30,7 +29,6 @@ interface TableCardProps {
 }
 
 export function TableCard({ table, onEdit, onUnassignGuest, getGuestRelationships }: TableCardProps) {
-  const [isExpanded, setIsExpanded] = useState(false)
   const deleteTableMutation = trpc.tables.delete.useMutation()
 
   const handleDelete = async () => {
@@ -113,80 +111,62 @@ export function TableCard({ table, onEdit, onUnassignGuest, getGuestRelationship
             />
           </div>
         </div>
-
-        {/* Toggle button for guest list */}
-        {table.guests.length > 0 && (
-          <button
-            onClick={() => setIsExpanded(!isExpanded)}
-            className="mt-3 flex items-center space-x-2 text-sm text-gray-600 hover:text-gray-800 transition-colors w-full"
-          >
-            {isExpanded ? (
-              <ChevronDown className="w-4 h-4" />
-            ) : (
-              <ChevronRight className="w-4 h-4" />
-            )}
-            <span>{isExpanded ? 'Hide' : 'Show'} guest list ({table.guests.length})</span>
-          </button>
-        )}
       </div>
 
-      {/* Guest list - only show when expanded or when empty */}
-      {(isExpanded || table.guests.length === 0) && (
-        <div className="p-4">
-          {table.guests.length === 0 ? (
-            <div className="text-center py-6 text-gray-500">
-              <Users className="w-8 h-8 mx-auto mb-2 text-gray-400" />
-              <div className="text-sm">No guests assigned</div>
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {table.guests.map((guest) => {
-                const guestRelationships = getGuestRelationships(guest.id)
-                const tableRelationships = guestRelationships.filter((rel) => {
-                  const otherGuestId = rel.guestFromId === guest.id ? rel.guestToId : rel.guestFromId
-                  return table.guests.some((g) => g.id === otherGuestId)
-                })
+      <div className="p-4">
+        {table.guests.length === 0 ? (
+          <div className="text-center py-6 text-gray-500">
+            <Users className="w-8 h-8 mx-auto mb-2 text-gray-400" />
+            <div className="text-sm">No guests assigned</div>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {table.guests.map((guest) => {
+              const guestRelationships = getGuestRelationships(guest.id)
+              const tableRelationships = guestRelationships.filter((rel) => {
+                const otherGuestId = rel.guestFromId === guest.id ? rel.guestToId : rel.guestFromId
+                return table.guests.some((g) => g.id === otherGuestId)
+              })
 
-                return (
-                  <div
-                    key={guest.id}
-                    className="flex items-center justify-between p-2 bg-gray-50 rounded-md hover:bg-gray-100 transition-colors"
-                  >
-                    <div className="flex-1">
-                      <div className="font-medium text-gray-900 text-sm">
-                        {guest.firstName} {guest.lastName}
-                      </div>
-                      <div className="flex items-center space-x-2 mt-1">
-                        <span
-                          className={`text-xs px-2 py-1 rounded-full ${
-                            guest.rsvpStatus === "ACCEPTED"
-                              ? "bg-green-100 text-green-800"
-                              : guest.rsvpStatus === "DECLINED"
-                                ? "bg-red-100 text-red-800"
-                                : "bg-yellow-100 text-yellow-800"
-                          }`}
-                        >
-                          {guest.rsvpStatus}
-                        </span>
-                        {tableRelationships.length > 0 && (
-                          <span className="text-xs text-blue-600">{tableRelationships.length} connections</span>
-                        )}
-                      </div>
+              return (
+                <div
+                  key={guest.id}
+                  className="flex items-center justify-between p-2 bg-gray-50 rounded-md hover:bg-gray-100 transition-colors"
+                >
+                  <div className="flex-1">
+                    <div className="font-medium text-gray-900 text-sm">
+                      {guest.firstName} {guest.lastName}
                     </div>
-                    <button
-                      onClick={() => onUnassignGuest(guest.id)}
-                      className="p-1 text-gray-400 hover:text-red-600 transition-colors"
-                      title="Remove from table"
-                    >
-                      <UserMinus className="w-4 h-4" />
-                    </button>
+                    <div className="flex items-center space-x-2 mt-1">
+                      <span
+                        className={`text-xs px-2 py-1 rounded-full ${
+                          guest.rsvpStatus === "ACCEPTED"
+                            ? "bg-green-100 text-green-800"
+                            : guest.rsvpStatus === "DECLINED"
+                              ? "bg-red-100 text-red-800"
+                              : "bg-yellow-100 text-yellow-800"
+                        }`}
+                      >
+                        {guest.rsvpStatus}
+                      </span>
+                      {tableRelationships.length > 0 && (
+                        <span className="text-xs text-blue-600">{tableRelationships.length} connections</span>
+                      )}
+                    </div>
                   </div>
-                )
-              })}
-            </div>
-          )}
-        </div>
-      )}
+                  <button
+                    onClick={() => onUnassignGuest(guest.id)}
+                    className="p-1 text-gray-400 hover:text-red-600 transition-colors"
+                    title="Remove from table"
+                  >
+                    <UserMinus className="w-4 h-4" />
+                  </button>
+                </div>
+              )
+            })}
+          </div>
+        )}
+      </div>
     </div>
   )
 }
