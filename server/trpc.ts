@@ -69,7 +69,7 @@ export const appRouter = router({
           dietaryRestrictions: z.string().optional(),
           plusOne: z.boolean().default(false),
           notes: z.string().optional(),
-          tableId: z.string().optional(),
+          tableId: z.string().nullable().optional(),
         }),
       )
       .mutation(async ({ input }) => {
@@ -94,7 +94,7 @@ export const appRouter = router({
           dietaryRestrictions: z.string().optional(),
           plusOne: z.boolean().optional(),
           notes: z.string().optional(),
-          tableId: z.string().optional(),
+          tableId: z.string().nullable().optional(),
         }),
       )
       .mutation(async ({ input }) => {
@@ -223,7 +223,7 @@ export const appRouter = router({
       .input(
         z.object({
           guestId: z.string(),
-          tableId: z.string().optional(),
+          tableId: z.string().nullable().optional(),
         }),
       )
       .mutation(async ({ input }) => {
