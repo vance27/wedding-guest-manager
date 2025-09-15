@@ -31,6 +31,7 @@ export function GraphVisualization() {
   const [filterType, setFilterType] = useState<string>("all");
   const [showTableColors, setShowTableColors] = useState(true);
   const [showTableGroups, setShowTableGroups] = useState(true);
+  const [selectedTableId, setSelectedTableId] = useState<string>("all");
 
   const { data: guests } = trpc.guests.getAll.useQuery({
     includeDeclined: false,
@@ -110,56 +111,72 @@ export function GraphVisualization() {
     return tableGroups;
   };
 
+  // First, filter guests based on table and relationship type
+  const filteredGuests = guests
+    ?.filter((guest) => {
+      // First, filter by table if a specific table is selected
+      if (selectedTableId !== "all") {
+        if (selectedTableId === "") {
+          // Show only unassigned guests
+          if (guest.tableId !== null) return false;
+        } else {
+          // Show only guests from the selected table
+          if (guest.tableId !== selectedTableId) return false;
+        }
+      }
+
+      // Then apply relationship type filters
+      if (filterType === "all") return true;
+      if (filterType === "family") {
+        return relationships?.some(
+          (rel) =>
+            (rel.guestFromId === guest.id || rel.guestToId === guest.id) &&
+            [
+              "FAMILY",
+              "SIBLING",
+              "PARENT",
+              "CHILD",
+              "COUSIN",
+              "SPOUSE",
+              "PARTNER",
+            ].includes(rel.relationshipType)
+        );
+      }
+      if (filterType === "friends") {
+        return relationships?.some(
+          (rel) =>
+            (rel.guestFromId === guest.id || rel.guestToId === guest.id) &&
+            rel.relationshipType === "FRIEND"
+        );
+      }
+      return true;
+    }) || [];
+
+  const filteredGuestIds = filteredGuests.map(guest => guest.id);
+
   const graphData = {
-    nodes:
-      guests
-        ?.filter((guest) => {
-          if (filterType === "all") return true;
-          if (filterType === "family") {
-            return relationships?.some(
-              (rel) =>
-                (rel.guestFromId === guest.id || rel.guestToId === guest.id) &&
-                [
-                  "FAMILY",
-                  "SIBLING",
-                  "PARENT",
-                  "CHILD",
-                  "COUSIN",
-                  "SPOUSE",
-                  "PARTNER",
-                ].includes(rel.relationshipType)
-            );
-          }
-          if (filterType === "friends") {
-            return relationships?.some(
-              (rel) =>
-                (rel.guestFromId === guest.id || rel.guestToId === guest.id) &&
-                rel.relationshipType === "FRIEND"
-            );
-          }
-          return true;
-        })
-        .map((guest) => ({
-          id: guest.id,
-          name: `${guest.firstName} ${guest.lastName}`,
-          rsvpStatus: guest.rsvpStatus,
-          tableId: guest.tableId,
-          tableName: tables?.find(t => t.id === guest.tableId)?.name,
-          group: guest.tableId
-            ? tables?.findIndex((t) => t.id === guest.tableId) || 0
-            : 0,
-          val:
-            relationships?.filter(
-              (rel) =>
-                rel.guestFromId === guest.id || rel.guestToId === guest.id
-            ).length || 1,
-        })) || [],
+    nodes: filteredGuests.map((guest) => ({
+      id: guest.id,
+      name: `${guest.firstName} ${guest.lastName}`,
+      rsvpStatus: guest.rsvpStatus,
+      tableId: guest.tableId,
+      tableName: tables?.find(t => t.id === guest.tableId)?.name,
+      group: guest.tableId
+        ? tables?.findIndex((t) => t.id === guest.tableId) || 0
+        : 0,
+      val:
+        relationships?.filter(
+          (rel) =>
+            rel.guestFromId === guest.id || rel.guestToId === guest.id
+        ).length || 1,
+    })),
     links:
       relationships
         ?.filter((rel) => {
-          const sourceExists = guests?.some((g) => g.id === rel.guestFromId);
-          const targetExists = guests?.some((g) => g.id === rel.guestToId);
-          return sourceExists && targetExists;
+          // Check if both source and target guests are in the filtered guest list
+          const sourceInFilter = filteredGuestIds.includes(rel.guestFromId);
+          const targetInFilter = filteredGuestIds.includes(rel.guestToId);
+          return sourceInFilter && targetInFilter;
         })
         .map((rel) => ({
           source: rel.guestFromId,
@@ -200,12 +217,32 @@ export function GraphVisualization() {
             Guest Relationship Graph
           </h2>
           <p className="text-gray-600 mt-1">
-            Visual representation of guest connections
+            {selectedTableId === "all"
+              ? "Visual representation of guest connections"
+              : selectedTableId === ""
+                ? "Unassigned guests and their relationships"
+                : `Guests and relationships for: ${tables?.find(t => t.id === selectedTableId)?.name || "Selected Table"}`
+            }
           </p>
         </div>
         <div className="flex items-center space-x-4">
           <div className="flex items-center space-x-2">
             <Filter className="w-4 h-4 text-gray-500" />
+            <select
+              value={selectedTableId}
+              onChange={(e) => setSelectedTableId(e.target.value)}
+              className="px-3 py-1 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="all">All Tables</option>
+              <option value="">Unassigned Guests</option>
+              {tables?.map((table) => (
+                <option key={table.id} value={table.id}>
+                  {table.name} ({table._count.guests} guests)
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="flex items-center space-x-2">
             <select
               value={filterType}
               onChange={(e) => setFilterType(e.target.value)}
