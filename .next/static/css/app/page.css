@@ -1,0 +1,58 @@
+/*!*********************************************************************************************************************************************************************************************************************************************************!*\
+  !*** css ./node_modules/next/dist/build/webpack/loaders/css-loader/src/index.js??ruleSet[1].rules[13].oneOf[10].use[2]!./node_modules/next/dist/build/webpack/loaders/postcss-loader/src/index.js??ruleSet[1].rules[13].oneOf[10].use[3]!./src/App.css ***!
+  \*********************************************************************************************************************************************************************************************************************************************************/
+#root {
+  max-width: 1280px;
+  margin: 0 auto;
+  text-align: center;
+}
+
+.card {
+  padding: 2em;
+}
+
+.read-the-docs {
+  color: #888;
+}
+
+/* Custom styles for the wedding guest manager */
+.guest-card {
+  transition: all 0.2s ease-in-out;
+}
+
+.guest-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.rsvp-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.rsvp-accepted {
+  background-color: #dcfce7;
+  color: #166534;
+}
+
+.rsvp-declined {
+  background-color: #fee2e2;
+  color: #991b1b;
+}
+
+.rsvp-pending {
+  background-color: #fef3c7;
+  color: #92400e;
+}
+
+.rsvp-maybe {
+  background-color: #e0e7ff;
+  color: #3730a3;
+}
+
