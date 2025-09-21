@@ -1,6 +1,8 @@
 "use client"
 
-import { User, Mail, Phone, Users, Trash2, Edit } from "lucide-react"
+import { useState } from "react"
+import { User, Mail, Phone, Users, Trash2, Edit, Camera, ChevronDown, ChevronUp } from "lucide-react"
+import { trpc } from "../utils/trpc"
 
 interface Guest {
   id: string
@@ -9,7 +11,6 @@ interface Guest {
   email?: string | null
   phone?: string | null
   rsvpStatus: "PENDING" | "ACCEPTED" | "DECLINED" | "MAYBE"
-  dietaryRestrictions?: string | null
   plusOne: boolean
   notes?: string | null
   table?: {
@@ -34,6 +35,16 @@ interface Guest {
       lastName: string
     }
   }>
+  photoAssignments?: Array<{
+    id: string
+    photo: {
+      id: string
+      fileName: string
+      originalName: string
+      filePath: string
+      isHidden: boolean
+    }
+  }>
 }
 
 interface GuestCardProps {
@@ -43,6 +54,13 @@ interface GuestCardProps {
 }
 
 export function GuestCard({ guest, onEdit, onDelete }: GuestCardProps) {
+  const [showPhotos, setShowPhotos] = useState(false)
+
+  const { data: guestPhotos, isLoading } = trpc.guests.getPhotos.useQuery(
+    guest.id,
+    { enabled: showPhotos }
+  )
+
   const getRsvpBadgeClass = (status: string) => {
     switch (status) {
       case "ACCEPTED":
@@ -57,9 +75,13 @@ export function GuestCard({ guest, onEdit, onDelete }: GuestCardProps) {
   }
 
   const totalRelationships = guest.relationshipsFrom.length + guest.relationshipsTo.length
+  const hasPhotos = guest.photoAssignments && guest.photoAssignments.length > 0
+  const photoCount = guest.photoAssignments?.length || 0
 
   return (
-    <div className="guest-card bg-white rounded-lg shadow-md p-6 border border-gray-200">
+    <div className={`guest-card bg-white rounded-lg shadow-md p-6 border-2 transition-colors ${
+      hasPhotos ? 'border-gray-200' : 'border-red-300'
+    }`}>
       <div className="flex justify-between items-start mb-4">
         <div className="flex items-center space-x-3">
           <div className="bg-blue-100 p-2 rounded-full">
@@ -107,8 +129,60 @@ export function GuestCard({ guest, onEdit, onDelete }: GuestCardProps) {
           </div>
         )}
         {guest.plusOne && <div className="text-green-600 font-medium">Plus One</div>}
-        {guest.dietaryRestrictions && <div className="text-orange-600">Dietary: {guest.dietaryRestrictions}</div>}
         {guest.notes && <div className="text-gray-500 italic">Note: {guest.notes}</div>}
+      </div>
+
+      {/* Photo Section */}
+      <div className="mt-4 border-t border-gray-200 pt-4">
+        {hasPhotos ? (
+          <button
+            onClick={() => setShowPhotos(!showPhotos)}
+            className="flex items-center justify-between w-full text-left text-sm font-medium text-blue-600 hover:text-blue-700 transition-colors"
+          >
+            <div className="flex items-center space-x-2">
+              <Camera className="w-4 h-4" />
+              <span>{photoCount} photo{photoCount !== 1 ? 's' : ''}</span>
+            </div>
+            {showPhotos ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+          </button>
+        ) : (
+          <div className="flex items-center space-x-2 text-red-600 text-sm font-medium">
+            <Camera className="w-4 h-4" />
+            <span>No photos currently</span>
+          </div>
+        )}
+
+        {/* Expandable Photo Grid */}
+        {showPhotos && hasPhotos && (
+          <div className="mt-3">
+            {isLoading ? (
+              <div className="text-gray-500 text-sm">Loading photos...</div>
+            ) : (
+              <div className="grid grid-cols-2 gap-2">
+                {guestPhotos?.map((assignment) => (
+                  <div key={assignment.id} className="relative">
+                    <img
+                      src={assignment.photo.filePath}
+                      alt={assignment.photo.originalName}
+                      className="w-full h-20 object-cover rounded border"
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        target.style.display = 'none';
+                        target.nextElementSibling?.classList.remove('hidden');
+                      }}
+                    />
+                    <div className="hidden w-full h-20 bg-gray-100 rounded border flex items-center justify-center">
+                      <Camera className="w-6 h-6 text-gray-400" />
+                    </div>
+                    <div className="text-xs text-gray-500 mt-1 truncate">
+                      {assignment.photo.originalName}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   )

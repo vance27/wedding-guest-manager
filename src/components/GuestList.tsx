@@ -8,7 +8,6 @@ interface Guest {
   email?: string | null
   phone?: string | null
   rsvpStatus: "PENDING" | "ACCEPTED" | "DECLINED" | "MAYBE"
-  dietaryRestrictions?: string | null
   plusOne: boolean
   notes?: string | null
   table?: {
@@ -31,6 +30,16 @@ interface Guest {
       id: string
       firstName: string
       lastName: string
+    }
+  }>
+  photoAssignments?: Array<{
+    id: string
+    photo: {
+      id: string
+      fileName: string
+      originalName: string
+      filePath: string
+      isHidden: boolean
     }
   }>
 }

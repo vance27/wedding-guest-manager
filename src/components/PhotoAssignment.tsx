@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { trpc } from "../utils/trpc";
-import { Camera, Users, X, Check, Eye, EyeOff, UserPlus, Search, EyeClosed } from "lucide-react";
+import { Camera, Users, X, Check, Eye, EyeOff, UserPlus, Search, EyeClosed, Upload } from "lucide-react";
+import { PhotoImport } from "./PhotoImport";
 
 export function PhotoAssignment() {
   const [selectedPhotos, setSelectedPhotos] = useState<string[]>([]);
@@ -10,6 +11,7 @@ export function PhotoAssignment() {
   const [hideAssigned, setHideAssigned] = useState(false);
   const [showHidden, setShowHidden] = useState(false);
   const [guestSearchQuery, setGuestSearchQuery] = useState("");
+  const [showPhotoImport, setShowPhotoImport] = useState(false);
 
   const { data: photos, refetch: refetchPhotos } = trpc.photos.getAll.useQuery({
     hideAssigned,
@@ -27,6 +29,11 @@ export function PhotoAssignment() {
       setGuestSearchQuery("");
     },
   });
+
+  const handleImportComplete = () => {
+    setShowPhotoImport(false);
+    refetchPhotos();
+  };
 
   const removeAssignmentMutation = trpc.photos.removeGuestAssignment.useMutation({
     onSuccess: () => {
@@ -110,6 +117,13 @@ export function PhotoAssignment() {
           <p className="text-gray-600 mt-1">Assign guests to photos</p>
         </div>
         <div className="flex items-center space-x-6">
+          <button
+            onClick={() => setShowPhotoImport(true)}
+            className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center space-x-2"
+          >
+            <Upload className="w-4 h-4" />
+            <span>Import Photos</span>
+          </button>
           <label className="flex items-center space-x-2">
             <input
               type="checkbox"
@@ -390,6 +404,14 @@ export function PhotoAssignment() {
             }
           </div>
         </div>
+      )}
+
+      {/* Photo Import Modal */}
+      {showPhotoImport && (
+        <PhotoImport
+          onImportComplete={handleImportComplete}
+          onCancel={() => setShowPhotoImport(false)}
+        />
       )}
     </div>
   );

@@ -17,7 +17,7 @@ export const appRouter = router({
         }),
       )
       .query(async ({ input }) => {
-        const where = input.includeDeclined ? {} : { rsvpStatus: { not: "DECLINED" } }
+        const where = input.includeDeclined ? {} : { rsvpStatus: { not: "DECLINED" as const } }
 
         return await prisma.guest.findMany({
           where,
@@ -33,8 +33,52 @@ export const appRouter = router({
                 guestFrom: true,
               },
             },
+            photoAssignments: {
+              include: {
+                photo: {
+                  select: {
+                    id: true,
+                    fileName: true,
+                    originalName: true,
+                    filePath: true,
+                    isHidden: true,
+                  },
+                },
+              },
+              where: {
+                photo: {
+                  isHidden: false,
+                },
+              },
+            },
           },
           orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
+        })
+      }),
+
+    getPhotos: publicProcedure
+      .input(z.string())
+      .query(async ({ input: guestId }) => {
+        return await prisma.photoAssignment.findMany({
+          where: { guestId },
+          include: {
+            photo: {
+              select: {
+                id: true,
+                fileName: true,
+                originalName: true,
+                filePath: true,
+                isHidden: true,
+                width: true,
+                height: true,
+              },
+            },
+          },
+          orderBy: {
+            photo: {
+              fileName: "asc",
+            },
+          },
         })
       }),
 
