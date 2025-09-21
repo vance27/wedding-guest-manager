@@ -31,17 +31,40 @@ export function PhotoImport({ onImportComplete, onCancel }: PhotoImportProps) {
     setSelectedFiles(prev => prev.filter((_, i) => i !== index));
   };
 
-  const uploadFile = async (file: File): Promise<boolean> => {
+  const uploadFile = async (file: File, onProgress?: (progress: number) => void): Promise<boolean> => {
     const formData = new FormData();
     formData.append('photo', file);
 
     try {
+      // Simulate progress since we can't easily track real progress with fetch
+      if (onProgress) {
+        onProgress(10);
+        await new Promise(resolve => setTimeout(resolve, 100));
+        onProgress(50);
+      }
+
       const response = await fetch('/api/photos/upload', {
         method: 'POST',
         body: formData,
       });
 
-      return response.ok;
+      if (onProgress) {
+        onProgress(90);
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+
+      const result = await response.json();
+
+      if (onProgress) {
+        onProgress(100);
+      }
+
+      if (!response.ok) {
+        console.error('Upload failed:', result.error);
+        return false;
+      }
+
+      return result.success;
     } catch (error) {
       console.error('Upload error:', error);
       return false;
@@ -62,12 +85,18 @@ export function PhotoImport({ onImportComplete, onCancel }: PhotoImportProps) {
       setUploadProgress(prev => ({ ...prev, [fileKey]: 0 }));
 
       try {
-        const success = await uploadFile(file);
+        const success = await uploadFile(file, (progress) => {
+          setUploadProgress(prev => ({ ...prev, [fileKey]: progress }));
+        });
+
         setUploadResults(prev => ({
           ...prev,
           [fileKey]: success ? 'success' : 'error'
         }));
-        setUploadProgress(prev => ({ ...prev, [fileKey]: 100 }));
+
+        if (!success) {
+          setUploadProgress(prev => ({ ...prev, [fileKey]: 100 }));
+        }
       } catch (error) {
         setUploadResults(prev => ({ ...prev, [fileKey]: 'error' }));
         setUploadProgress(prev => ({ ...prev, [fileKey]: 100 }));
@@ -219,9 +248,22 @@ export function PhotoImport({ onImportComplete, onCancel }: PhotoImportProps) {
               {uploading ? (
                 <span>Uploading photos...</span>
               ) : completedUploads > 0 ? (
-                <span className="text-green-600">
-                  {successfulUploads} of {totalFiles} photos uploaded successfully
-                </span>
+                <>
+                  {successfulUploads === totalFiles ? (
+                    <span className="text-green-600">
+                      All {successfulUploads} photos uploaded successfully!
+                    </span>
+                  ) : (
+                    <span>
+                      <span className="text-green-600">{successfulUploads} uploaded</span>
+                      {successfulUploads < totalFiles && (
+                        <span className="text-red-600 ml-2">
+                          {totalFiles - successfulUploads} failed
+                        </span>
+                      )}
+                    </span>
+                  )}
+                </>
               ) : null}
             </div>
 

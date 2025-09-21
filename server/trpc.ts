@@ -410,6 +410,34 @@ export const appRouter = router({
           },
         })
       }),
+
+    delete: publicProcedure
+      .input(z.string())
+      .mutation(async ({ input: photoId }) => {
+        // First remove all photo assignments
+        await prisma.photoAssignment.deleteMany({
+          where: { photoId },
+        })
+
+        // Then delete the photo
+        return await prisma.photo.delete({
+          where: { id: photoId },
+        })
+      }),
+
+    deleteMany: publicProcedure
+      .input(z.array(z.string()))
+      .mutation(async ({ input: photoIds }) => {
+        // First remove all photo assignments for these photos
+        await prisma.photoAssignment.deleteMany({
+          where: { photoId: { in: photoIds } },
+        })
+
+        // Then delete the photos
+        return await prisma.photo.deleteMany({
+          where: { id: { in: photoIds } },
+        })
+      }),
   }),
 })
 

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { trpc } from "../utils/trpc";
-import { Camera, Users, X, Check, Eye, EyeOff, UserPlus, Search, EyeClosed, Upload } from "lucide-react";
+import { Camera, Users, X, Check, Eye, EyeOff, UserPlus, Search, EyeClosed, Upload, Trash2 } from "lucide-react";
 import { PhotoImport } from "./PhotoImport";
 
 export function PhotoAssignment() {
@@ -44,6 +44,19 @@ export function PhotoAssignment() {
   const toggleVisibilityMutation = trpc.photos.toggleVisibility.useMutation({
     onSuccess: () => {
       refetchPhotos();
+    },
+  });
+
+  const deletePhotoMutation = trpc.photos.delete.useMutation({
+    onSuccess: () => {
+      refetchPhotos();
+    },
+  });
+
+  const deletePhotosMutation = trpc.photos.deleteMany.useMutation({
+    onSuccess: () => {
+      refetchPhotos();
+      setSelectedPhotos([]);
     },
   });
 
@@ -95,6 +108,22 @@ export function PhotoAssignment() {
       photoId,
       isHidden,
     });
+  };
+
+  const handleDeletePhoto = async (photoId: string) => {
+    if (window.confirm("Are you sure you want to delete this photo? This action cannot be undone.")) {
+      await deletePhotoMutation.mutateAsync(photoId);
+    }
+  };
+
+  const handleDeleteSelectedPhotos = async () => {
+    if (selectedPhotos.length === 0) return;
+
+    const confirmMessage = `Are you sure you want to delete ${selectedPhotos.length} photo${selectedPhotos.length !== 1 ? 's' : ''}? This action cannot be undone.`;
+
+    if (window.confirm(confirmMessage)) {
+      await deletePhotosMutation.mutateAsync(selectedPhotos);
+    }
   };
 
   const handleSelectAll = () => {
@@ -159,16 +188,26 @@ export function PhotoAssignment() {
               <span className="text-blue-800 font-medium">
                 {selectedPhotos.length} photo{selectedPhotos.length !== 1 ? 's' : ''} selected
               </span>
-              <button
-                onClick={() => {
-                  setSelectedPhotos([]);
-                  setSelectedGuests([]);
-                  setGuestSearchQuery("");
-                }}
-                className="text-gray-500 hover:text-gray-700"
-              >
-                <X className="w-5 h-5" />
-              </button>
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={handleDeleteSelectedPhotos}
+                  disabled={deletePhotosMutation.isPending}
+                  className="bg-red-600 text-white px-3 py-1 rounded-md hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-1 text-sm"
+                >
+                  <Trash2 className="w-3 h-3" />
+                  <span>Delete {selectedPhotos.length}</span>
+                </button>
+                <button
+                  onClick={() => {
+                    setSelectedPhotos([]);
+                    setSelectedGuests([]);
+                    setGuestSearchQuery("");
+                  }}
+                  className="text-gray-500 hover:text-gray-700"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
             </div>
 
             <div className="space-y-3">
@@ -314,6 +353,19 @@ export function PhotoAssignment() {
 
               {/* Photo controls */}
               <div className="absolute top-2 right-2 flex space-x-1">
+                {/* Delete button */}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDeletePhoto(photo.id);
+                  }}
+                  disabled={deletePhotoMutation.isPending}
+                  className="p-1 rounded-full bg-red-600 hover:bg-red-700 transition-colors disabled:opacity-50"
+                  title="Delete photo"
+                >
+                  <Trash2 className="w-3 h-3 text-white" />
+                </button>
+
                 {/* Hide/Show button */}
                 <button
                   onClick={(e) => {
