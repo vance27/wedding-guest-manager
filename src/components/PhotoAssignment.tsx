@@ -2,12 +2,13 @@
 
 import { useState } from "react";
 import { trpc } from "../utils/trpc";
-import { Camera, Users, X, Check, Eye, EyeOff } from "lucide-react";
+import { Camera, Users, X, Check, Eye, EyeOff, UserPlus, Search } from "lucide-react";
 
 export function PhotoAssignment() {
   const [selectedPhotos, setSelectedPhotos] = useState<string[]>([]);
-  const [selectedGuest, setSelectedGuest] = useState<string>("");
+  const [selectedGuests, setSelectedGuests] = useState<string[]>([]);
   const [hideAssigned, setHideAssigned] = useState(false);
+  const [guestSearchQuery, setGuestSearchQuery] = useState("");
 
   const { data: photos, refetch: refetchPhotos } = trpc.photos.getAll.useQuery({
     hideAssigned,
@@ -20,7 +21,8 @@ export function PhotoAssignment() {
     onSuccess: () => {
       refetchPhotos();
       setSelectedPhotos([]);
-      setSelectedGuest("");
+      setSelectedGuests([]);
+      setGuestSearchQuery("");
     },
   });
 
@@ -38,15 +40,39 @@ export function PhotoAssignment() {
     );
   };
 
-  const handleAssignGuest = async () => {
-    if (!selectedGuest || selectedPhotos.length === 0) return;
+  const handleGuestSelect = (guestId: string) => {
+    setSelectedGuests(prev =>
+      prev.includes(guestId)
+        ? prev.filter(id => id !== guestId)
+        : [...prev, guestId]
+    );
+  };
+
+  const handleAssignGuests = async () => {
+    if (selectedGuests.length === 0 || selectedPhotos.length === 0) return;
 
     for (const photoId of selectedPhotos) {
       await assignGuestsMutation.mutateAsync({
         photoId,
-        guestIds: [selectedGuest],
+        guestIds: selectedGuests,
       });
     }
+  };
+
+  const filteredGuests = guests?.filter(guest => {
+    const fullName = `${guest.firstName} ${guest.lastName}`.toLowerCase();
+    return fullName.includes(guestSearchQuery.toLowerCase());
+  }) || [];
+
+  const handleGuestFromSearch = (guestId: string) => {
+    if (!selectedGuests.includes(guestId)) {
+      setSelectedGuests(prev => [...prev, guestId]);
+    }
+    setGuestSearchQuery("");
+  };
+
+  const removeSelectedGuest = (guestId: string) => {
+    setSelectedGuests(prev => prev.filter(id => id !== guestId));
   };
 
   const handleRemoveAssignment = async (photoId: string, guestId: string) => {
@@ -94,38 +120,112 @@ export function PhotoAssignment() {
       {/* Assignment Controls */}
       {selectedPhotos.length > 0 && (
         <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
               <span className="text-blue-800 font-medium">
                 {selectedPhotos.length} photo{selectedPhotos.length !== 1 ? 's' : ''} selected
               </span>
-              <select
-                value={selectedGuest}
-                onChange={(e) => setSelectedGuest(e.target.value)}
-                className="border border-gray-300 rounded-md px-3 py-2 bg-white"
-              >
-                <option value="">Select a guest...</option>
-                {guests?.map((guest) => (
-                  <option key={guest.id} value={guest.id}>
-                    {guest.firstName} {guest.lastName}
-                  </option>
-                ))}
-              </select>
               <button
-                onClick={handleAssignGuest}
-                disabled={!selectedGuest || assignGuestsMutation.isLoading}
-                className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+                onClick={() => {
+                  setSelectedPhotos([]);
+                  setSelectedGuests([]);
+                  setGuestSearchQuery("");
+                }}
+                className="text-gray-500 hover:text-gray-700"
               >
-                <Check className="w-4 h-4" />
-                <span>Assign Guest</span>
+                <X className="w-5 h-5" />
               </button>
             </div>
-            <button
-              onClick={() => setSelectedPhotos([])}
-              className="text-gray-500 hover:text-gray-700"
-            >
-              <X className="w-5 h-5" />
-            </button>
+
+            <div className="space-y-3">
+              <div className="text-sm font-medium text-gray-700">Search and select guests to assign:</div>
+
+              {/* Search Input */}
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Search className="h-4 w-4 text-gray-400" />
+                </div>
+                <input
+                  type="text"
+                  value={guestSearchQuery}
+                  onChange={(e) => setGuestSearchQuery(e.target.value)}
+                  placeholder="Search guests by name..."
+                  className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+
+              {/* Search Results Dropdown */}
+              {guestSearchQuery && filteredGuests.length > 0 && (
+                <div className="bg-white border border-gray-200 rounded-md shadow-lg max-h-40 overflow-y-auto">
+                  {filteredGuests.slice(0, 10).map((guest) => (
+                    <button
+                      key={guest.id}
+                      onClick={() => handleGuestFromSearch(guest.id)}
+                      disabled={selectedGuests.includes(guest.id)}
+                      className={`w-full text-left px-3 py-2 hover:bg-gray-50 flex items-center justify-between ${
+                        selectedGuests.includes(guest.id)
+                          ? 'text-gray-400 cursor-not-allowed'
+                          : 'text-gray-900'
+                      }`}
+                    >
+                      <span>{guest.firstName} {guest.lastName}</span>
+                      {selectedGuests.includes(guest.id) && (
+                        <Check className="w-4 h-4 text-green-500" />
+                      )}
+                    </button>
+                  ))}
+                  {filteredGuests.length > 10 && (
+                    <div className="px-3 py-2 text-sm text-gray-500 bg-gray-50">
+                      {filteredGuests.length - 10} more results...
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* No results message */}
+              {guestSearchQuery && filteredGuests.length === 0 && (
+                <div className="text-sm text-gray-500 py-2">
+                  No guests found matching "{guestSearchQuery}"
+                </div>
+              )}
+
+              {/* Selected Guests */}
+              {selectedGuests.length > 0 && (
+                <div className="space-y-2">
+                  <div className="text-sm font-medium text-gray-700">Selected guests:</div>
+                  <div className="flex flex-wrap gap-2">
+                    {selectedGuests.map((guestId) => {
+                      const guest = guests?.find(g => g.id === guestId);
+                      if (!guest) return null;
+                      return (
+                        <div
+                          key={guestId}
+                          className="flex items-center space-x-2 bg-blue-100 text-blue-800 px-2 py-1 rounded-md text-sm"
+                        >
+                          <span>{guest.firstName} {guest.lastName}</span>
+                          <button
+                            onClick={() => removeSelectedGuest(guestId)}
+                            className="text-blue-600 hover:text-blue-800"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <button
+                    onClick={handleAssignGuests}
+                    disabled={assignGuestsMutation.isPending}
+                    className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+                  >
+                    <UserPlus className="w-4 h-4" />
+                    <span>
+                      {assignGuestsMutation.isPending ? 'Assigning...' : `Assign ${selectedGuests.length} Guest${selectedGuests.length !== 1 ? 's' : ''}`}
+                    </span>
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}
@@ -211,7 +311,7 @@ export function PhotoAssignment() {
                           <button
                             onClick={() => handleRemoveAssignment(photo.id, assignment.guest.id)}
                             className="text-red-500 hover:text-red-700"
-                            disabled={removeAssignmentMutation.isLoading}
+                            disabled={removeAssignmentMutation.isPending}
                           >
                             <X className="w-3 h-3" />
                           </button>

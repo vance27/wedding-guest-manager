@@ -43,7 +43,7 @@ export function GuestManager() {
 
   return (
     <div className="space-y-6">
-      <TabNavigation tabs={tabs} activeTab={activeTab} onTabChange={setActiveTab} />
+      <TabNavigation tabs={tabs} activeTab={activeTab} onTabChange={(tabId) => setActiveTab(tabId as Tab)} />
 
       {activeTab === "guests" && (
         <div className="space-y-6">

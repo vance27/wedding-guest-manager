@@ -275,15 +275,19 @@ export const appRouter = router({
         }),
       )
       .mutation(async ({ input }) => {
-        // Remove existing assignments for this photo
-        await prisma.photoAssignment.deleteMany({
+        // Get existing assignments for this photo
+        const existingAssignments = await prisma.photoAssignment.findMany({
           where: { photoId: input.photoId },
+          select: { guestId: true },
         })
 
-        // Create new assignments
-        if (input.guestIds.length > 0) {
+        const existingGuestIds = existingAssignments.map(a => a.guestId)
+        const newGuestIds = input.guestIds.filter(guestId => !existingGuestIds.includes(guestId))
+
+        // Create new assignments only for guests not already assigned
+        if (newGuestIds.length > 0) {
           await prisma.photoAssignment.createMany({
-            data: input.guestIds.map((guestId) => ({
+            data: newGuestIds.map((guestId) => ({
               photoId: input.photoId,
               guestId,
             })),
