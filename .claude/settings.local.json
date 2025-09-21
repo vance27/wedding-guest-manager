@@ -3,7 +3,8 @@
     "allow": [
       "Bash(cat:*)",
       "Bash(sed:*)",
-      "Bash(cp:*)"
+      "Bash(cp:*)",
+      "Bash(chmod:*)"
     ],
     "deny": [],
     "ask": []

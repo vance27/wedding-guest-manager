@@ -8,8 +8,9 @@ import { TabNavigation } from "./TabNavigation"
 import { RelationshipManager } from "./RelationshipManager"
 import { GraphVisualization } from "./GraphVisualization"
 import { TableAssignment } from "./TableAssignment"
+import { PhotoAssignment } from "./PhotoAssignment"
 
-type Tab = "guests" | "relationships" | "graph" | "tables"
+type Tab = "guests" | "relationships" | "graph" | "tables" | "photos"
 
 export function GuestManager() {
   const [activeTab, setActiveTab] = useState<Tab>("guests")
@@ -37,6 +38,7 @@ export function GuestManager() {
     { id: "relationships" as const, label: "Relationships" },
     { id: "graph" as const, label: "Graph View" },
     { id: "tables" as const, label: "Table Assignment" },
+    { id: "photos" as const, label: "Photo Assignment" },
   ]
 
   return (
@@ -86,6 +88,8 @@ export function GuestManager() {
       {activeTab === "graph" && <GraphVisualization />}
 
       {activeTab === "tables" && <TableAssignment />}
+
+      {activeTab === "photos" && <PhotoAssignment />}
     </div>
   )
 }

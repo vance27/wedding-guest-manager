@@ -21,20 +21,23 @@ model Guest {
   email        String?
   phone        String?
   address      String?
-  
+
   // Wedding-specific fields
   rsvpStatus   RsvpStatus @default(PENDING)
   dietaryRestrictions String?
   plusOne      Boolean    @default(false)
   notes        String?
-  
+
   // Table assignment
   tableId      String?
   table        Table?     @relation(fields: [tableId], references: [id])
-  
+
   // Relationships with other guests
   relationshipsFrom Relationship[] @relation("GuestFrom")
   relationshipsTo   Relationship[] @relation("GuestTo")
+
+  // Photo assignments (many-to-many)
+  photoAssignments PhotoAssignment[]
 
   @@map("guests")
 }
@@ -62,15 +65,55 @@ model Table {
   id        String   @id @default(cuid())
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  
+
   name        String
   capacity    Int      @default(8)
   description String?
-  
+
   // Guests assigned to this table
   guests Guest[]
-  
+
   @@map("tables")
+}
+
+model Photo {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // File information
+  fileName     String   @unique
+  originalName String
+  filePath     String
+  fileSize     Int?
+  mimeType     String?
+
+  // Photo metadata
+  width        Int?
+  height       Int?
+  description  String?
+
+  // Guest assignments (many-to-many)
+  guestAssignments PhotoAssignment[]
+
+  @@map("photos")
+}
+
+model PhotoAssignment {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  // Relationships
+  guestId   String
+  photoId   String
+  guest     Guest    @relation(fields: [guestId], references: [id], onDelete: Cascade)
+  photo     Photo    @relation(fields: [photoId], references: [id], onDelete: Cascade)
+
+  // Additional metadata
+  notes     String?
+
+  @@unique([guestId, photoId])
+  @@map("photo_assignments")
 }
 
 enum RsvpStatus {

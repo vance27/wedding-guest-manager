@@ -5,7 +5,7 @@ import { trpc } from "../utils/trpc";
 import { TableCard } from "./TableCard";
 import { TableForm } from "./TableForm";
 import { UnassignedGuests } from "./UnassignedGuests";
-import { Plus, Users, AlertCircle } from "lucide-react";
+import { Plus, Users, AlertCircle, Download } from "lucide-react";
 
 export function TableAssignment() {
   const [showTableForm, setShowTableForm] = useState(false);
@@ -58,6 +58,110 @@ export function TableAssignment() {
     );
   };
 
+  const exportTableData = () => {
+    if (!tables || !guests) return;
+
+    // Create CSV data
+    const csvData = [];
+
+    // CSV Headers
+    csvData.push([
+      "Table Name",
+      "Table Description",
+      "Table Capacity",
+      "Guests Assigned",
+      "Guest First Name",
+      "Guest Last Name",
+      "Guest Email",
+      "Guest Phone",
+      "RSVP Status",
+      "Dietary Restrictions",
+      "Plus One",
+      "Guest Notes"
+    ]);
+
+    // Add table data with guests
+    tables.forEach(table => {
+      const tableGuests = guests.filter(guest => guest.tableId === table.id);
+
+      if (tableGuests.length === 0) {
+        // Table with no guests
+        csvData.push([
+          table.name,
+          table.description || "",
+          table.capacity,
+          0,
+          "", "", "", "", "", "", "", ""
+        ]);
+      } else {
+        // Table with guests
+        tableGuests.forEach((guest, index) => {
+          csvData.push([
+            index === 0 ? table.name : "", // Only show table info on first guest row
+            index === 0 ? (table.description || "") : "",
+            index === 0 ? table.capacity : "",
+            index === 0 ? tableGuests.length : "",
+            guest.firstName,
+            guest.lastName,
+            guest.email || "",
+            guest.phone || "",
+            guest.rsvpStatus,
+            guest.dietaryRestrictions || "",
+            guest.plusOne ? "Yes" : "No",
+            guest.notes || ""
+          ]);
+        });
+      }
+    });
+
+    // Add unassigned guests section
+    const unassigned = guests.filter(guest => !guest.tableId);
+    if (unassigned.length > 0) {
+      // Add separator row
+      csvData.push(["", "", "", "", "", "", "", "", "", "", "", ""]);
+
+      unassigned.forEach((guest, index) => {
+        csvData.push([
+          index === 0 ? "UNASSIGNED GUESTS" : "",
+          index === 0 ? "Guests not yet assigned to a table" : "",
+          index === 0 ? "N/A" : "",
+          index === 0 ? unassigned.length : "",
+          guest.firstName,
+          guest.lastName,
+          guest.email || "",
+          guest.phone || "",
+          guest.rsvpStatus,
+          guest.dietaryRestrictions || "",
+          guest.plusOne ? "Yes" : "No",
+          guest.notes || ""
+        ]);
+      });
+    }
+
+    // Convert to CSV string
+    const csvContent = csvData.map(row =>
+      row.map(field => {
+        // Escape quotes and wrap in quotes if contains comma, quote, or newline
+        const stringField = String(field);
+        if (stringField.includes(',') || stringField.includes('"') || stringField.includes('\n')) {
+          return '"' + stringField.replace(/"/g, '""') + '"';
+        }
+        return stringField;
+      }).join(',')
+    ).join('\n');
+
+    // Create and download file
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `table-assignments-${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -67,13 +171,22 @@ export function TableAssignment() {
           </h2>
           <p className="text-gray-600 mt-1">Organize your guests into tables</p>
         </div>
-        <button
-          onClick={() => setShowTableForm(true)}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
-        >
-          <Plus className="w-4 h-4" />
-          <span>Add Table</span>
-        </button>
+        <div className="flex items-center space-x-3">
+          <button
+            onClick={exportTableData}
+            className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center space-x-2"
+          >
+            <Download className="w-4 h-4" />
+            <span>Export CSV</span>
+          </button>
+          <button
+            onClick={() => setShowTableForm(true)}
+            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Add Table</span>
+          </button>
+        </div>
       </div>
 
       {/* Assignment Statistics */}

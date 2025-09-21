@@ -34,4 +34,6 @@ dist-ssr
 prisma/migrations/
 
 
+photos
+
 .next

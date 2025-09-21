@@ -236,6 +236,101 @@ export const appRouter = router({
         })
       }),
   }),
+
+  // Photo procedures
+  photos: router({
+    getAll: publicProcedure
+      .input(
+        z.object({
+          hideAssigned: z.boolean().default(false),
+        }),
+      )
+      .query(async ({ input }) => {
+        return await prisma.photo.findMany({
+          include: {
+            guestAssignments: {
+              include: {
+                guest: true,
+              },
+            },
+          },
+          where: input.hideAssigned
+            ? {
+                guestAssignments: {
+                  none: {},
+                },
+              }
+            : undefined,
+          orderBy: {
+            fileName: "asc",
+          },
+        })
+      }),
+
+    assignGuests: publicProcedure
+      .input(
+        z.object({
+          photoId: z.string(),
+          guestIds: z.array(z.string()),
+        }),
+      )
+      .mutation(async ({ input }) => {
+        // Remove existing assignments for this photo
+        await prisma.photoAssignment.deleteMany({
+          where: { photoId: input.photoId },
+        })
+
+        // Create new assignments
+        if (input.guestIds.length > 0) {
+          await prisma.photoAssignment.createMany({
+            data: input.guestIds.map((guestId) => ({
+              photoId: input.photoId,
+              guestId,
+            })),
+          })
+        }
+
+        return await prisma.photo.findUnique({
+          where: { id: input.photoId },
+          include: {
+            guestAssignments: {
+              include: {
+                guest: true,
+              },
+            },
+          },
+        })
+      }),
+
+    removeGuestAssignment: publicProcedure
+      .input(
+        z.object({
+          photoId: z.string(),
+          guestId: z.string(),
+        }),
+      )
+      .mutation(async ({ input }) => {
+        await prisma.photoAssignment.delete({
+          where: {
+            guestId_photoId: {
+              guestId: input.guestId,
+              photoId: input.photoId,
+            },
+          },
+        })
+
+        return await prisma.photo.findUnique({
+          where: { id: input.photoId },
+          include: {
+            guestAssignments: {
+              include: {
+                guest: true,
+              },
+            },
+          },
+        })
+      }),
+  }),
 })
 
 export type AppRouter = typeof appRouter

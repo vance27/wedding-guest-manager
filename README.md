@@ -37,7 +37,9 @@ A comprehensive full-stack application for managing wedding guests, relationship
 3. **Seed Database** (Optional)
    - Run the seed script to add sample data:
      \`\`\`bash
+
      # Connect to your database and run the SQL in scripts/seed-database.sql
+
      \`\`\`
 
 4. **Start Development Servers**
@@ -62,6 +64,7 @@ A comprehensive full-stack application for managing wedding guests, relationship
 ## API Endpoints
 
 The tRPC server provides type-safe endpoints for:
+
 - Guest CRUD operations
 - Relationship management
 - Table assignment and management
@@ -76,3 +79,25 @@ The tRPC server provides type-safe endpoints for:
 ## License
 
 MIT License
+
+## Convert files to jpegs
+
+I've created a TypeScript script convert-to-jpg.ts that will convert all your PDF, PNG, and HEIC files to JPG format.
+
+  To run the script:
+
+  1. First install ImageMagick (required for conversions):
+  brew install imagemagick
+  2. Then run the script:
+  npx tsx convert-to-jpg.ts
+
+  The script will:
+
+- Convert PDF files (first page only) to JPG
+- Convert PNG files to JPG
+- Convert HEIC files to JPG
+- Skip files already in JPG/JPEG format
+- Preserve original files (you can delete them manually after verification)
+- Show a detailed summary of conversions
+
+  The script includes error handling and will tell you exactly which files were converted successfully and which ones failed.
