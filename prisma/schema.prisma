@@ -92,6 +92,7 @@ model Photo {
   width        Int?
   height       Int?
   description  String?
+  isHidden     Boolean  @default(false)
 
   // Guest assignments (many-to-many)
   guestAssignments PhotoAssignment[]

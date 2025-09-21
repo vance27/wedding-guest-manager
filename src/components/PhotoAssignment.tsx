@@ -2,16 +2,18 @@
 
 import { useState } from "react";
 import { trpc } from "../utils/trpc";
-import { Camera, Users, X, Check, Eye, EyeOff, UserPlus, Search } from "lucide-react";
+import { Camera, Users, X, Check, Eye, EyeOff, UserPlus, Search, EyeClosed } from "lucide-react";
 
 export function PhotoAssignment() {
   const [selectedPhotos, setSelectedPhotos] = useState<string[]>([]);
   const [selectedGuests, setSelectedGuests] = useState<string[]>([]);
   const [hideAssigned, setHideAssigned] = useState(false);
+  const [showHidden, setShowHidden] = useState(false);
   const [guestSearchQuery, setGuestSearchQuery] = useState("");
 
   const { data: photos, refetch: refetchPhotos } = trpc.photos.getAll.useQuery({
     hideAssigned,
+    showHidden,
   });
   const { data: guests } = trpc.guests.getAll.useQuery({
     includeDeclined: false,
@@ -32,6 +34,12 @@ export function PhotoAssignment() {
     },
   });
 
+  const toggleVisibilityMutation = trpc.photos.toggleVisibility.useMutation({
+    onSuccess: () => {
+      refetchPhotos();
+    },
+  });
+
   const handlePhotoSelect = (photoId: string) => {
     setSelectedPhotos(prev =>
       prev.includes(photoId)
@@ -40,13 +48,6 @@ export function PhotoAssignment() {
     );
   };
 
-  const handleGuestSelect = (guestId: string) => {
-    setSelectedGuests(prev =>
-      prev.includes(guestId)
-        ? prev.filter(id => id !== guestId)
-        : [...prev, guestId]
-    );
-  };
 
   const handleAssignGuests = async () => {
     if (selectedGuests.length === 0 || selectedPhotos.length === 0) return;
@@ -82,6 +83,13 @@ export function PhotoAssignment() {
     });
   };
 
+  const handleTogglePhotoVisibility = async (photoId: string, isHidden: boolean) => {
+    await toggleVisibilityMutation.mutateAsync({
+      photoId,
+      isHidden,
+    });
+  };
+
   const handleSelectAll = () => {
     if (!photos) return;
 
@@ -101,7 +109,7 @@ export function PhotoAssignment() {
           </h2>
           <p className="text-gray-600 mt-1">Assign guests to photos</p>
         </div>
-        <div className="flex items-center space-x-3">
+        <div className="flex items-center space-x-6">
           <label className="flex items-center space-x-2">
             <input
               type="checkbox"
@@ -112,6 +120,18 @@ export function PhotoAssignment() {
             <span className="text-sm text-gray-600 flex items-center space-x-1">
               {hideAssigned ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               <span>Hide assigned photos</span>
+            </span>
+          </label>
+          <label className="flex items-center space-x-2">
+            <input
+              type="checkbox"
+              checked={showHidden}
+              onChange={(e) => setShowHidden(e.target.checked)}
+              className="rounded border-gray-300 text-orange-600 focus:ring-orange-500"
+            />
+            <span className="text-sm text-gray-600 flex items-center space-x-1">
+              <EyeClosed className="w-4 h-4" />
+              <span>Show hidden photos</span>
             </span>
           </label>
         </div>
@@ -278,10 +298,43 @@ export function PhotoAssignment() {
                 </div>
               </div>
 
-              {/* Selection indicator */}
-              {selectedPhotos.includes(photo.id) && (
-                <div className="absolute top-2 right-2 bg-blue-600 rounded-full p-1">
-                  <Check className="w-3 h-3 text-white" />
+              {/* Photo controls */}
+              <div className="absolute top-2 right-2 flex space-x-1">
+                {/* Hide/Show button */}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleTogglePhotoVisibility(photo.id, !photo.isHidden);
+                  }}
+                  disabled={toggleVisibilityMutation.isPending}
+                  className={`p-1 rounded-full transition-colors ${
+                    photo.isHidden
+                      ? 'bg-orange-600 hover:bg-orange-700'
+                      : 'bg-gray-600 hover:bg-gray-700'
+                  }`}
+                  title={photo.isHidden ? 'Show photo' : 'Hide photo'}
+                >
+                  {photo.isHidden ? (
+                    <EyeClosed className="w-3 h-3 text-white" />
+                  ) : (
+                    <Eye className="w-3 h-3 text-white" />
+                  )}
+                </button>
+
+                {/* Selection indicator */}
+                {selectedPhotos.includes(photo.id) && (
+                  <div className="bg-blue-600 rounded-full p-1">
+                    <Check className="w-3 h-3 text-white" />
+                  </div>
+                )}
+              </div>
+
+              {/* Hidden overlay */}
+              {photo.isHidden && (
+                <div className="absolute inset-0 bg-gray-900 bg-opacity-50 rounded-t-lg flex items-center justify-center">
+                  <div className="text-white text-xs font-medium bg-gray-800 px-2 py-1 rounded">
+                    Hidden
+                  </div>
                 </div>
               )}
 

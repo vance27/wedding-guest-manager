@@ -243,9 +243,26 @@ export const appRouter = router({
       .input(
         z.object({
           hideAssigned: z.boolean().default(false),
+          showHidden: z.boolean().default(false),
         }),
       )
       .query(async ({ input }) => {
+        const whereConditions: any[] = [];
+
+        // Hide photos that are marked as hidden (unless showHidden is true)
+        if (!input.showHidden) {
+          whereConditions.push({ isHidden: false });
+        }
+
+        // Hide photos that have guest assignments (if hideAssigned is true)
+        if (input.hideAssigned) {
+          whereConditions.push({
+            guestAssignments: {
+              none: {},
+            },
+          });
+        }
+
         return await prisma.photo.findMany({
           include: {
             guestAssignments: {
@@ -254,13 +271,7 @@ export const appRouter = router({
               },
             },
           },
-          where: input.hideAssigned
-            ? {
-                guestAssignments: {
-                  none: {},
-                },
-              }
-            : undefined,
+          where: whereConditions.length > 0 ? { AND: whereConditions } : undefined,
           orderBy: {
             fileName: "asc",
           },
@@ -325,6 +336,27 @@ export const appRouter = router({
 
         return await prisma.photo.findUnique({
           where: { id: input.photoId },
+          include: {
+            guestAssignments: {
+              include: {
+                guest: true,
+              },
+            },
+          },
+        })
+      }),
+
+    toggleVisibility: publicProcedure
+      .input(
+        z.object({
+          photoId: z.string(),
+          isHidden: z.boolean(),
+        }),
+      )
+      .mutation(async ({ input }) => {
+        return await prisma.photo.update({
+          where: { id: input.photoId },
+          data: { isHidden: input.isHidden },
           include: {
             guestAssignments: {
               include: {
