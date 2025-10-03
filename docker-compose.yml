@@ -1,9 +1,9 @@
-version: '3.8'
+version: "3.8"
 
 services:
   postgres:
     image: postgres:15-alpine
-    container_name: wedding-postgres
+    container_name: wedding-postgres2
     environment:
       POSTGRES_DB: wedding_db
       POSTGRES_USER: wedding_user
@@ -12,8 +12,8 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+      - postgres_data2:/var/lib/postgresql/data
+      # - ./init.sql:/docker-entrypoint-initdb.d/init.sql
     restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U wedding_user -d wedding_db"]
@@ -22,5 +22,5 @@ services:
       retries: 3
 
 volumes:
-  postgres_data:
+  postgres_data2:
     driver: local

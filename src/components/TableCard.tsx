@@ -9,6 +9,7 @@ interface Guest {
   firstName: string
   lastName: string
   rsvpStatus: string
+  foodSelection?: string | null
 }
 
 interface Table {
@@ -64,6 +65,29 @@ export function TableCard({ table, onEdit, onUnassignGuest, getGuestRelationship
 
   const tableConnections = getTableConnections()
 
+  // Calculate food selection counts
+  const getFoodCounts = () => {
+    const counts = {
+      VEGAN: 0,
+      STEAK: 0,
+      KIDS: 0,
+      SALMON: 0,
+      NONE: 0
+    }
+
+    table.guests.forEach((guest) => {
+      if (guest.foodSelection) {
+        counts[guest.foodSelection as keyof typeof counts]++
+      } else {
+        counts.NONE++
+      }
+    })
+
+    return counts
+  }
+
+  const foodCounts = getFoodCounts()
+
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
       <div className="p-4 border-b border-gray-200">
@@ -71,6 +95,17 @@ export function TableCard({ table, onEdit, onUnassignGuest, getGuestRelationship
           <div className="flex-1">
             <h3 className="font-semibold text-gray-900 text-lg">{table.name}</h3>
             {table.description && <p className="text-gray-600 text-sm mt-1">{table.description}</p>}
+            {table.guests.length > 0 && (
+              <div className="mt-2">
+                <div className="text-xs text-gray-500 space-y-1">
+                  {foodCounts.VEGAN > 0 && <div>• Vegan: {foodCounts.VEGAN}</div>}
+                  {foodCounts.STEAK > 0 && <div>• Steak: {foodCounts.STEAK}</div>}
+                  {foodCounts.KIDS > 0 && <div>• Kids: {foodCounts.KIDS}</div>}
+                  {foodCounts.SALMON > 0 && <div>• Salmon: {foodCounts.SALMON}</div>}
+                  {foodCounts.NONE > 0 && <div>• No selection: {foodCounts.NONE}</div>}
+                </div>
+              </div>
+            )}
           </div>
           <div className="flex space-x-2">
             <button onClick={onEdit} className="p-1 text-gray-400 hover:text-blue-600 transition-colors">

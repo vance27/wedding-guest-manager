@@ -5,7 +5,7 @@ import { trpc } from "../utils/trpc";
 import { TableCard } from "./TableCard";
 import { TableForm } from "./TableForm";
 import { UnassignedGuests } from "./UnassignedGuests";
-import { Plus, Users, AlertCircle, Download } from "lucide-react";
+import { Plus, Users, AlertCircle, Download, UtensilsCrossed } from "lucide-react";
 
 export function TableAssignment() {
   const [showTableForm, setShowTableForm] = useState(false);
@@ -29,7 +29,30 @@ export function TableAssignment() {
   const totalAssignedGuests =
     guests?.filter((guest) => guest.tableId).length || 0;
   const totalCapacity =
-    tables?.reduce((sum, table) => sum + table.capacity, 0) || 0;
+    tables?.reduce((sum, table) => sum + table.capacity, 0) || 0
+
+  // Calculate total food selection counts across all guests
+  const getTotalFoodCounts = () => {
+    const counts = {
+      VEGAN: 0,
+      STEAK: 0,
+      KIDS: 0,
+      SALMON: 0,
+      NONE: 0
+    }
+
+    guests?.forEach((guest) => {
+      if (guest.foodSelection) {
+        counts[guest.foodSelection as keyof typeof counts]++
+      } else {
+        counts.NONE++
+      }
+    })
+
+    return counts
+  }
+
+  const totalFoodCounts = getTotalFoodCounts();
 
   const handleTableSaved = () => {
     setShowTableForm(false);
@@ -76,6 +99,7 @@ export function TableAssignment() {
       "Guest Phone",
       "RSVP Status",
       "Dietary Restrictions",
+      "Food Selection",
       "Plus One",
       "Guest Notes"
     ]);
@@ -91,7 +115,7 @@ export function TableAssignment() {
           table.description || "",
           table.capacity,
           0,
-          "", "", "", "", "", "", "", ""
+          "", "", "", "", "", "", "", "", ""
         ]);
       } else {
         // Table with guests
@@ -107,6 +131,7 @@ export function TableAssignment() {
             guest.phone || "",
             guest.rsvpStatus,
             guest.dietaryRestrictions || "",
+            guest.foodSelection || "",
             guest.plusOne ? "Yes" : "No",
             guest.notes || ""
           ]);
@@ -118,7 +143,7 @@ export function TableAssignment() {
     const unassigned = guests.filter(guest => !guest.tableId);
     if (unassigned.length > 0) {
       // Add separator row
-      csvData.push(["", "", "", "", "", "", "", "", "", "", "", ""]);
+      csvData.push(["", "", "", "", "", "", "", "", "", "", "", "", ""]);
 
       unassigned.forEach((guest, index) => {
         csvData.push([
@@ -132,6 +157,7 @@ export function TableAssignment() {
           guest.phone || "",
           guest.rsvpStatus,
           guest.dietaryRestrictions || "",
+          guest.foodSelection || "",
           guest.plusOne ? "Yes" : "No",
           guest.notes || ""
         ]);
@@ -245,6 +271,38 @@ export function TableAssignment() {
         </div>
       </div>
 
+      {/* Food Selection Totals */}
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <div className="flex items-center space-x-3 mb-4">
+          <div className="bg-orange-100 p-2 rounded-full">
+            <UtensilsCrossed className="w-5 h-5 text-orange-600" />
+          </div>
+          <h3 className="text-lg font-semibold text-gray-900">Food Selection Summary</h3>
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+          <div className="text-center">
+            <div className="text-2xl font-bold text-green-600">{totalFoodCounts.VEGAN}</div>
+            <div className="text-sm text-gray-600">Vegan</div>
+          </div>
+          <div className="text-center">
+            <div className="text-2xl font-bold text-red-600">{totalFoodCounts.STEAK}</div>
+            <div className="text-sm text-gray-600">Steak</div>
+          </div>
+          <div className="text-center">
+            <div className="text-2xl font-bold text-blue-600">{totalFoodCounts.KIDS}</div>
+            <div className="text-sm text-gray-600">Kids</div>
+          </div>
+          <div className="text-center">
+            <div className="text-2xl font-bold text-pink-600">{totalFoodCounts.SALMON}</div>
+            <div className="text-sm text-gray-600">Salmon</div>
+          </div>
+          <div className="text-center">
+            <div className="text-2xl font-bold text-gray-600">{totalFoodCounts.NONE}</div>
+            <div className="text-sm text-gray-600">No Selection</div>
+          </div>
+        </div>
+      </div>
+
       {/* Unassigned Guests */}
       {unassignedGuests.length > 0 && (
         <UnassignedGuests
@@ -257,15 +315,17 @@ export function TableAssignment() {
 
       {/* Tables Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-        {tables?.map((table) => (
-          <TableCard
-            key={table.id}
-            table={table}
-            onEdit={() => handleEditTable(table.id)}
-            onUnassignGuest={handleUnassignGuest}
-            getGuestRelationships={getGuestRelationships}
-          />
-        ))}
+        {tables
+          ?.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' }))
+          .map((table) => (
+            <TableCard
+              key={table.id}
+              table={table}
+              onEdit={() => handleEditTable(table.id)}
+              onUnassignGuest={handleUnassignGuest}
+              getGuestRelationships={getGuestRelationships}
+            />
+          ))}
       </div>
 
       {tables?.length === 0 && (

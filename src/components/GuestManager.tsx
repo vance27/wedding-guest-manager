@@ -15,6 +15,8 @@ type Tab = "guests" | "relationships" | "graph" | "tables" | "photos"
 export function GuestManager() {
   const [activeTab, setActiveTab] = useState<Tab>("guests")
   const [showDeclined, setShowDeclined] = useState(false)
+  const [hideGuestsWithoutPhotos, setHideGuestsWithoutPhotos] = useState(false)
+  const [hideGuestsWithPhotos, setHideGuestsWithPhotos] = useState(false)
   const [showGuestForm, setShowGuestForm] = useState(false)
   const [editingGuest, setEditingGuest] = useState<string | null>(null)
 
@@ -33,8 +35,25 @@ export function GuestManager() {
     setShowGuestForm(true)
   }
 
+  // Filter guests based on photo assignments
+  const filteredGuests = guests?.filter(guest => {
+    const hasPhotos = guest.photoAssignments && guest.photoAssignments.length > 0;
+
+    // If hiding guests without photos, only show those with photos
+    if (hideGuestsWithoutPhotos && !hasPhotos) {
+      return false;
+    }
+
+    // If hiding guests with photos, only show those without photos
+    if (hideGuestsWithPhotos && hasPhotos) {
+      return false;
+    }
+
+    return true;
+  }) || [];
+
   const tabs = [
-    { id: "guests" as const, label: "Guests", count: guests?.length },
+    { id: "guests" as const, label: "Guests", count: filteredGuests?.length },
     { id: "relationships" as const, label: "Relationships" },
     { id: "graph" as const, label: "Graph View" },
     { id: "tables" as const, label: "Table Assignment" },
@@ -48,7 +67,7 @@ export function GuestManager() {
       {activeTab === "guests" && (
         <div className="space-y-6">
           <div className="flex justify-between items-center">
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-6">
               <h2 className="text-2xl font-semibold text-gray-900">Guest List</h2>
               <label className="flex items-center space-x-2">
                 <input
@@ -59,6 +78,34 @@ export function GuestManager() {
                 />
                 <span className="text-sm text-gray-600">Show declined guests</span>
               </label>
+              <label className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  checked={hideGuestsWithoutPhotos}
+                  onChange={(e) => {
+                    if (e.target.checked && hideGuestsWithPhotos) {
+                      setHideGuestsWithPhotos(false);
+                    }
+                    setHideGuestsWithoutPhotos(e.target.checked);
+                  }}
+                  className="rounded border-gray-300 text-orange-600 focus:ring-orange-500"
+                />
+                <span className="text-sm text-gray-600">Hide guests without photos</span>
+              </label>
+              <label className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  checked={hideGuestsWithPhotos}
+                  onChange={(e) => {
+                    if (e.target.checked && hideGuestsWithoutPhotos) {
+                      setHideGuestsWithoutPhotos(false);
+                    }
+                    setHideGuestsWithPhotos(e.target.checked);
+                  }}
+                  className="rounded border-gray-300 text-green-600 focus:ring-green-500"
+                />
+                <span className="text-sm text-gray-600">Hide guests with photos</span>
+              </label>
             </div>
             <button
               onClick={() => setShowGuestForm(true)}
@@ -68,7 +115,7 @@ export function GuestManager() {
             </button>
           </div>
 
-          <GuestList guests={guests || []} onEditGuest={handleEditGuest} onRefetch={refetchGuests} />
+          <GuestList guests={filteredGuests} onEditGuest={handleEditGuest} onRefetch={refetchGuests} />
 
           {showGuestForm && (
             <GuestForm

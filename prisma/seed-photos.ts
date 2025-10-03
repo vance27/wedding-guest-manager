@@ -1,6 +1,6 @@
-import { PrismaClient } from '@prisma/client';
-import * as fs from 'fs';
-import * as path from 'path';
+import { PrismaClient } from "@prisma/client";
+import * as fs from "fs";
+import * as path from "path";
 
 const prisma = new PrismaClient();
 
@@ -15,14 +15,14 @@ interface PhotoInfo {
 function getMimeType(filePath: string): string {
   const ext = path.extname(filePath).toLowerCase();
   const mimeTypes: { [key: string]: string } = {
-    '.jpg': 'image/jpeg',
-    '.jpeg': 'image/jpeg',
-    '.png': 'image/png',
-    '.gif': 'image/gif',
-    '.webp': 'image/webp',
-    '.heic': 'image/heic',
+    ".jpg": "image/jpeg",
+    ".jpeg": "image/jpeg",
+    ".png": "image/png",
+    ".gif": "image/gif",
+    ".webp": "image/webp",
+    ".heic": "image/heic",
   };
-  return mimeTypes[ext] || 'application/octet-stream';
+  return mimeTypes[ext] || "application/octet-stream";
 }
 
 function scanPhotosDirectory(photosDir: string): PhotoInfo[] {
@@ -37,7 +37,7 @@ function scanPhotosDirectory(photosDir: string): PhotoInfo[] {
 
   for (const file of files) {
     // Skip hidden files and directories
-    if (file.startsWith('.') || file === 'node_modules') {
+    if (file.startsWith(".") || file === "node_modules") {
       continue;
     }
 
@@ -49,7 +49,7 @@ function scanPhotosDirectory(photosDir: string): PhotoInfo[] {
       const ext = path.extname(file).toLowerCase();
 
       // Only process image files
-      if (['.jpg', '.jpeg', '.png', '.gif', '.webp', '.heic'].includes(ext)) {
+      if ([".jpg", ".jpeg", ".png", ".gif", ".webp", ".heic"].includes(ext)) {
         photos.push({
           fileName: file,
           originalName: file,
@@ -66,19 +66,19 @@ function scanPhotosDirectory(photosDir: string): PhotoInfo[] {
 
 async function main() {
   try {
-    const photosDir = path.join(process.cwd(), 'photos');
+    const photosDir = path.join(process.cwd(), "photos");
     const photos = scanPhotosDirectory(photosDir);
 
     console.log(`Found ${photos.length} photos in directory`);
 
     if (photos.length === 0) {
-      console.log('No photos found to seed');
+      console.log("No photos found to seed");
       return;
     }
 
     // Clear existing photos
-    await prisma.photo.deleteMany();
-    console.log('Cleared existing photo data');
+    // await prisma.photo.deleteMany();
+    // console.log('Cleared existing photo data');
 
     // Create photo records
     for (const photoInfo of photos) {
@@ -99,17 +99,16 @@ async function main() {
       }
     }
 
-    console.log('Photo seeding completed successfully');
+    console.log("Photo seeding completed successfully");
   } catch (error) {
-    console.error('Error during photo seeding:', error);
+    console.error("Error during photo seeding:", error);
     throw error;
   } finally {
     await prisma.$disconnect();
   }
 }
 
-main()
-  .catch((e) => {
-    console.error(e);
-    process.exit(1);
-  });
+main().catch((e) => {
+  console.error(e);
+  process.exit(1);
+});

@@ -1,11 +1,11 @@
-import { initTRPC } from "@trpc/server"
-import { z } from "zod"
-import { prisma } from "./db"
+import { initTRPC } from "@trpc/server";
+import { z } from "zod";
+import { prisma } from "./db";
 
-const t = initTRPC.create()
+const t = initTRPC.create();
 
-export const router = t.router
-export const publicProcedure = t.procedure
+export const router = t.router;
+export const publicProcedure = t.procedure;
 
 export const appRouter = router({
   // Guest procedures
@@ -14,10 +14,12 @@ export const appRouter = router({
       .input(
         z.object({
           includeDeclined: z.boolean().default(true),
-        }),
+        })
       )
       .query(async ({ input }) => {
-        const where = input.includeDeclined ? {} : { rsvpStatus: { not: "DECLINED" as const } }
+        const where = input.includeDeclined
+          ? {}
+          : { rsvpStatus: { not: "DECLINED" as const } };
 
         return await prisma.guest.findMany({
           where,
@@ -34,7 +36,9 @@ export const appRouter = router({
               },
             },
             photoAssignments: {
-              include: {
+              select: {
+                id: true,
+                isSelected: true,
                 photo: {
                   select: {
                     id: true,
@@ -53,7 +57,7 @@ export const appRouter = router({
             },
           },
           orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
-        })
+        });
       }),
 
     getPhotos: publicProcedure
@@ -79,7 +83,7 @@ export const appRouter = router({
               fileName: "asc",
             },
           },
-        })
+        });
       }),
 
     getById: publicProcedure.input(z.string()).query(async ({ input }) => {
@@ -98,7 +102,7 @@ export const appRouter = router({
             },
           },
         },
-      })
+      });
     }),
 
     create: publicProcedure
@@ -109,12 +113,17 @@ export const appRouter = router({
           email: z.string().email().optional(),
           phone: z.string().optional(),
           address: z.string().optional(),
-          rsvpStatus: z.enum(["PENDING", "ACCEPTED", "DECLINED", "MAYBE"]).default("PENDING"),
+          rsvpStatus: z
+            .enum(["PENDING", "ACCEPTED", "DECLINED", "MAYBE"])
+            .default("PENDING"),
           dietaryRestrictions: z.string().optional(),
+          foodSelection: z
+            .enum(["VEGAN", "STEAK", "KIDS", "SALMON"])
+            .optional(),
           plusOne: z.boolean().default(false),
           notes: z.string().optional(),
           tableId: z.string().nullable().optional(),
-        }),
+        })
       )
       .mutation(async ({ input }) => {
         return await prisma.guest.create({
@@ -122,7 +131,7 @@ export const appRouter = router({
           include: {
             table: true,
           },
-        })
+        });
       }),
 
     update: publicProcedure
@@ -134,28 +143,33 @@ export const appRouter = router({
           email: z.string().email().optional(),
           phone: z.string().optional(),
           address: z.string().optional(),
-          rsvpStatus: z.enum(["PENDING", "ACCEPTED", "DECLINED", "MAYBE"]).optional(),
+          rsvpStatus: z
+            .enum(["PENDING", "ACCEPTED", "DECLINED", "MAYBE"])
+            .optional(),
           dietaryRestrictions: z.string().optional(),
+          foodSelection: z
+            .enum(["VEGAN", "STEAK", "KIDS", "SALMON"])
+            .optional(),
           plusOne: z.boolean().optional(),
           notes: z.string().optional(),
           tableId: z.string().nullable().optional(),
-        }),
+        })
       )
       .mutation(async ({ input }) => {
-        const { id, ...data } = input
+        const { id, ...data } = input;
         return await prisma.guest.update({
           where: { id },
           data,
           include: {
             table: true,
           },
-        })
+        });
       }),
 
     delete: publicProcedure.input(z.string()).mutation(async ({ input }) => {
       return await prisma.guest.delete({
         where: { id: input },
-      })
+      });
     }),
   }),
 
@@ -167,7 +181,7 @@ export const appRouter = router({
           guestFrom: true,
           guestTo: true,
         },
-      })
+      });
     }),
 
     create: publicProcedure
@@ -189,7 +203,7 @@ export const appRouter = router({
           ]),
           strength: z.number().min(1).max(5).default(1),
           notes: z.string().optional(),
-        }),
+        })
       )
       .mutation(async ({ input }) => {
         return await prisma.relationship.create({
@@ -198,13 +212,13 @@ export const appRouter = router({
             guestFrom: true,
             guestTo: true,
           },
-        })
+        });
       }),
 
     delete: publicProcedure.input(z.string()).mutation(async ({ input }) => {
       return await prisma.relationship.delete({
         where: { id: input },
-      })
+      });
     }),
   }),
 
@@ -223,7 +237,7 @@ export const appRouter = router({
         orderBy: {
           name: "asc",
         },
-      })
+      });
     }),
 
     create: publicProcedure
@@ -232,12 +246,12 @@ export const appRouter = router({
           name: z.string().min(1),
           capacity: z.number().min(1).default(8),
           description: z.string().optional(),
-        }),
+        })
       )
       .mutation(async ({ input }) => {
         return await prisma.table.create({
           data: input,
-        })
+        });
       }),
 
     update: publicProcedure
@@ -247,20 +261,20 @@ export const appRouter = router({
           name: z.string().min(1).optional(),
           capacity: z.number().min(1).optional(),
           description: z.string().optional(),
-        }),
+        })
       )
       .mutation(async ({ input }) => {
-        const { id, ...data } = input
+        const { id, ...data } = input;
         return await prisma.table.update({
           where: { id },
           data,
-        })
+        });
       }),
 
     delete: publicProcedure.input(z.string()).mutation(async ({ input }) => {
       return await prisma.table.delete({
         where: { id: input },
-      })
+      });
     }),
 
     assignGuest: publicProcedure
@@ -268,7 +282,7 @@ export const appRouter = router({
         z.object({
           guestId: z.string(),
           tableId: z.string().nullable().optional(),
-        }),
+        })
       )
       .mutation(async ({ input }) => {
         return await prisma.guest.update({
@@ -277,7 +291,7 @@ export const appRouter = router({
           include: {
             table: true,
           },
-        })
+        });
       }),
   }),
 
@@ -288,7 +302,7 @@ export const appRouter = router({
         z.object({
           hideAssigned: z.boolean().default(false),
           showHidden: z.boolean().default(false),
-        }),
+        })
       )
       .query(async ({ input }) => {
         const whereConditions: any[] = [];
@@ -315,11 +329,12 @@ export const appRouter = router({
               },
             },
           },
-          where: whereConditions.length > 0 ? { AND: whereConditions } : undefined,
+          where:
+            whereConditions.length > 0 ? { AND: whereConditions } : undefined,
           orderBy: {
             fileName: "asc",
           },
-        })
+        });
       }),
 
     assignGuests: publicProcedure
@@ -327,17 +342,19 @@ export const appRouter = router({
         z.object({
           photoId: z.string(),
           guestIds: z.array(z.string()),
-        }),
+        })
       )
       .mutation(async ({ input }) => {
         // Get existing assignments for this photo
         const existingAssignments = await prisma.photoAssignment.findMany({
           where: { photoId: input.photoId },
           select: { guestId: true },
-        })
+        });
 
-        const existingGuestIds = existingAssignments.map(a => a.guestId)
-        const newGuestIds = input.guestIds.filter(guestId => !existingGuestIds.includes(guestId))
+        const existingGuestIds = existingAssignments.map((a) => a.guestId);
+        const newGuestIds = input.guestIds.filter(
+          (guestId) => !existingGuestIds.includes(guestId)
+        );
 
         // Create new assignments only for guests not already assigned
         if (newGuestIds.length > 0) {
@@ -346,7 +363,7 @@ export const appRouter = router({
               photoId: input.photoId,
               guestId,
             })),
-          })
+          });
         }
 
         return await prisma.photo.findUnique({
@@ -358,7 +375,7 @@ export const appRouter = router({
               },
             },
           },
-        })
+        });
       }),
 
     removeGuestAssignment: publicProcedure
@@ -366,7 +383,7 @@ export const appRouter = router({
         z.object({
           photoId: z.string(),
           guestId: z.string(),
-        }),
+        })
       )
       .mutation(async ({ input }) => {
         await prisma.photoAssignment.delete({
@@ -376,7 +393,7 @@ export const appRouter = router({
               photoId: input.photoId,
             },
           },
-        })
+        });
 
         return await prisma.photo.findUnique({
           where: { id: input.photoId },
@@ -387,7 +404,7 @@ export const appRouter = router({
               },
             },
           },
-        })
+        });
       }),
 
     toggleVisibility: publicProcedure
@@ -395,7 +412,7 @@ export const appRouter = router({
         z.object({
           photoId: z.string(),
           isHidden: z.boolean(),
-        }),
+        })
       )
       .mutation(async ({ input }) => {
         return await prisma.photo.update({
@@ -408,7 +425,7 @@ export const appRouter = router({
               },
             },
           },
-        })
+        });
       }),
 
     delete: publicProcedure
@@ -417,12 +434,12 @@ export const appRouter = router({
         // First remove all photo assignments
         await prisma.photoAssignment.deleteMany({
           where: { photoId },
-        })
+        });
 
         // Then delete the photo
         return await prisma.photo.delete({
           where: { id: photoId },
-        })
+        });
       }),
 
     deleteMany: publicProcedure
@@ -431,14 +448,51 @@ export const appRouter = router({
         // First remove all photo assignments for these photos
         await prisma.photoAssignment.deleteMany({
           where: { photoId: { in: photoIds } },
-        })
+        });
 
         // Then delete the photos
         return await prisma.photo.deleteMany({
           where: { id: { in: photoIds } },
+        });
+      }),
+
+    togglePhotoSelection: publicProcedure
+      .input(
+        z.object({
+          guestId: z.string(),
+          photoId: z.string(),
         })
+      )
+      .mutation(async ({ input }) => {
+        // Get the current assignment
+        const assignment = await prisma.photoAssignment.findUnique({
+          where: {
+            guestId_photoId: {
+              guestId: input.guestId,
+              photoId: input.photoId,
+            },
+          },
+        });
+
+        if (!assignment) {
+          throw new Error("Photo assignment not found");
+        }
+
+        // Toggle the selection
+        return await prisma.photoAssignment.update({
+          where: {
+            guestId_photoId: {
+              guestId: input.guestId,
+              photoId: input.photoId,
+            },
+          },
+          data: { isSelected: !assignment.isSelected },
+          include: {
+            photo: true,
+          },
+        });
       }),
   }),
-})
+});
 
-export type AppRouter = typeof appRouter
+export type AppRouter = typeof appRouter;

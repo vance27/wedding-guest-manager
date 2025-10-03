@@ -101,3 +101,9 @@ I've created a TypeScript script convert-to-jpg.ts that will convert all your PD
 - Show a detailed summary of conversions
 
   The script includes error handling and will tell you exactly which files were converted successfully and which ones failed.
+
+## Docker dump backup of db
+
+```
+docker exec -t 8504112b5715f8d8b7e1f0596988367d045973a1615b7948a472936d301b8268 pg_dumpall -c -U wedding_user > dump_`date +%Y-%m-%d"_"%H_%M_%S`.sql
+```

@@ -25,6 +25,7 @@ model Guest {
   // Wedding-specific fields
   rsvpStatus   RsvpStatus @default(PENDING)
   dietaryRestrictions String?
+  foodSelection FoodSelection?
   plusOne      Boolean    @default(false)
   notes        String?
 
@@ -111,7 +112,8 @@ model PhotoAssignment {
   photo     Photo    @relation(fields: [photoId], references: [id], onDelete: Cascade)
 
   // Additional metadata
-  notes     String?
+  notes      String?
+  isSelected Boolean  @default(false)
 
   @@unique([guestId, photoId])
   @@map("photo_assignments")
@@ -135,4 +137,11 @@ enum RelationshipType {
   CHILD
   COUSIN
   ACQUAINTANCE
+}
+
+enum FoodSelection {
+  VEGAN
+  STEAK
+  KIDS
+  SALMON
 }

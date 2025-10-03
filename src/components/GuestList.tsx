@@ -34,6 +34,7 @@ interface Guest {
   }>
   photoAssignments?: Array<{
     id: string
+    isSelected?: boolean
     photo: {
       id: string
       fileName: string

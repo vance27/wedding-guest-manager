@@ -37,6 +37,7 @@ interface Guest {
   }>
   photoAssignments?: Array<{
     id: string
+    isSelected?: boolean
     photo: {
       id: string
       fileName: string
@@ -56,10 +57,16 @@ interface GuestCardProps {
 export function GuestCard({ guest, onEdit, onDelete }: GuestCardProps) {
   const [showPhotos, setShowPhotos] = useState(false)
 
-  const { data: guestPhotos, isLoading } = trpc.guests.getPhotos.useQuery(
+  const { data: guestPhotos, isLoading, refetch } = trpc.guests.getPhotos.useQuery(
     guest.id,
     { enabled: showPhotos }
   )
+
+  const togglePhotoSelectionMutation = trpc.photos.togglePhotoSelection.useMutation({
+    onSuccess: () => {
+      refetch()
+    },
+  })
 
   const getRsvpBadgeClass = (status: string) => {
     switch (status) {
@@ -77,6 +84,13 @@ export function GuestCard({ guest, onEdit, onDelete }: GuestCardProps) {
   const totalRelationships = guest.relationshipsFrom.length + guest.relationshipsTo.length
   const hasPhotos = guest.photoAssignments && guest.photoAssignments.length > 0
   const photoCount = guest.photoAssignments?.length || 0
+
+  const handleTogglePhotoSelection = (photoId: string) => {
+    togglePhotoSelectionMutation.mutate({
+      guestId: guest.id,
+      photoId: photoId,
+    })
+  }
 
   return (
     <div className={`guest-card bg-white rounded-lg shadow-md p-6 border-2 transition-colors ${
@@ -161,21 +175,33 @@ export function GuestCard({ guest, onEdit, onDelete }: GuestCardProps) {
               <div className="grid grid-cols-2 gap-2">
                 {guestPhotos?.map((assignment) => (
                   <div key={assignment.id} className="relative">
-                    <img
-                      src={assignment.photo.filePath}
-                      alt={assignment.photo.originalName}
-                      className="w-full h-20 object-cover rounded border"
-                      onError={(e) => {
-                        const target = e.target as HTMLImageElement;
-                        target.style.display = 'none';
-                        target.nextElementSibling?.classList.remove('hidden');
-                      }}
-                    />
-                    <div className="hidden w-full h-20 bg-gray-100 rounded border flex items-center justify-center">
-                      <Camera className="w-6 h-6 text-gray-400" />
+                    <div
+                      onClick={() => handleTogglePhotoSelection(assignment.photo.id)}
+                      className={`cursor-pointer transition-all ${
+                        assignment.isSelected
+                          ? 'ring-4 ring-green-500 rounded'
+                          : 'hover:ring-2 hover:ring-gray-300 rounded'
+                      }`}
+                    >
+                      <img
+                        src={assignment.photo.filePath}
+                        alt={assignment.photo.originalName}
+                        className="w-full h-20 object-cover rounded border"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.style.display = 'none';
+                          target.nextElementSibling?.classList.remove('hidden');
+                        }}
+                      />
+                      <div className="hidden w-full h-20 bg-gray-100 rounded border flex items-center justify-center">
+                        <Camera className="w-6 h-6 text-gray-400" />
+                      </div>
                     </div>
                     <div className="text-xs text-gray-500 mt-1 truncate">
                       {assignment.photo.originalName}
+                      {assignment.isSelected && (
+                        <span className="text-green-600 font-semibold ml-1">✓ Selected</span>
+                      )}
                     </div>
                   </div>
                 ))}
